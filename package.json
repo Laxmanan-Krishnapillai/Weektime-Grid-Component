@@ -1,0 +1,27 @@
+{
+  "name": "weektime-grid-component",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@mui/material": "^5.15.12",
+    "@mui/x-data-grid-premium": "^7.6.1",
+    "luxon": "^3.4.4",
+    "next-intl": "^3.15.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sonner": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
