@@ -1,0 +1,32 @@
+{
+  "home": {
+    "title": "AS4 Gas Nomination Grid",
+    "intro": "Explore the production-inspired editable grid for capturing weekly gas nominations. Adjust the resolution, switch direction, and play with URL sharing support."
+  },
+  "grid": {
+    "weekLabel": "Week",
+    "direction": "Direction",
+    "entry": "Entry",
+    "exit": "Exit",
+    "resolution": "Resolution",
+    "minutes": "{count, plural, one {# minute} other {# minutes}}",
+    "leadTimeNotice": "Cells before {time} are locked due to the {hours}h lead time.",
+    "fill": "Fill",
+    "fillSelection": "Fill selection",
+    "fillValueLabel": "Value",
+    "fillApply": "Apply",
+    "fillCancel": "Cancel",
+    "totals": "Totals",
+    "day": "Day",
+    "dayTotal": "Day total",
+    "weekTotal": "Week total",
+    "noSelection": "Select one or more editable cells to enable bulk fill.",
+    "invalidValue": "Enter a whole number between 0 and {max}.",
+    "prefillError": "Failed to prefill nomination",
+    "clipboardError": "Clipboard data invalid",
+    "gasDay": "Gas day",
+    "timezoneBadge": "{label} ({offset})",
+    "locked": "Locked",
+    "paste": "Paste"
+  }
+}
