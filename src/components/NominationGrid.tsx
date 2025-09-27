@@ -87,6 +87,14 @@ interface ParseResult {
   error?: ValidationError;
 }
 
+function coerceStepValue(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  const parsed = typeof value === 'string' && value.trim().length === 0 ? 0 : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 const DEBOUNCE_MS = 300;
 const STEP_FIELD_PREFIX = 'step-';
 
@@ -306,7 +314,7 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
   }, [steps]);
 
   const dayTotals = useMemo(
-    () => stepsByDay.map((daySteps) => daySteps.reduce((total, step) => total + step.value, 0)),
+    () => stepsByDay.map((daySteps) => daySteps.reduce((total, step) => total + coerceStepValue(step.value), 0)),
     [stepsByDay],
   );
 
@@ -418,7 +426,7 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
       };
       stepColumnsMeta.forEach((meta) => {
         const step = daySteps[meta.stepIndex];
-        row[meta.field] = step ? step.value : '';
+        row[meta.field] = step ? coerceStepValue(step.value) : null;
       });
       return row;
     });
@@ -460,12 +468,26 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
         return next;
       });
 
+      const nextValue = result.value!;
+
+      const updatedDaySteps = daySteps.map((step) =>
+        step.startUTC === targetStep.startUTC
+          ? {
+              ...step,
+              value: nextValue,
+              source: 'user',
+            }
+          : step,
+      );
+
+      const updatedDayTotal = updatedDaySteps.reduce((total, step) => total + coerceStepValue(step.value), 0);
+
       setSteps((prev) =>
         prev.map((step) =>
           step.startUTC === targetStep.startUTC
             ? {
                 ...step,
-                value: result.value!,
+                value: nextValue,
                 source: 'user',
               }
             : step,
@@ -474,7 +496,8 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
 
       return {
         ...newRow,
-        [changedMeta.field]: result.value,
+        dayTotal: updatedDayTotal,
+        [changedMeta.field]: nextValue,
       };
     },
     [maxValue, stepColumnsMeta, stepsByDay],

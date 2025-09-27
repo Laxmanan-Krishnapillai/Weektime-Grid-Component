@@ -102,8 +102,15 @@ export function generateSteps({
       const endUTC = ensureISO(endLocal.toUTC());
       const key = `${startUTC}|${endUTC}`;
       const baseline = baselineMap.get(key);
-      const baselineValue = baseline?.value ?? 0;
-      const value = clamp(baselineValue, 0, maxValue);
+      const rawBaselineValue = baseline?.value;
+      const numericBaselineValue =
+        typeof rawBaselineValue === 'number'
+          ? rawBaselineValue
+          : rawBaselineValue == null
+            ? 0
+            : Number(rawBaselineValue);
+      const safeBaselineValue = Number.isFinite(numericBaselineValue) ? numericBaselineValue : 0;
+      const value = clamp(safeBaselineValue, 0, maxValue);
       const source: NominationStep['source'] = baseline ? 'previous' : 'default';
       let editable = true;
       if (gasDayStart < todayStart) {
