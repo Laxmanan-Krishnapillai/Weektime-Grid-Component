@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node", "react", "react-dom"]
+    "types": ["node", "react", "react-dom", "vite/client"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

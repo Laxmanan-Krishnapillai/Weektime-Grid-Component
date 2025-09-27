@@ -34,6 +34,22 @@ export function resolveWeekStart(anchorISO: string): DateTime {
   return anchor.startOf('week');
 }
 
+function ensureISO(date: DateTime): string {
+  const iso = date.toISO();
+  if (!iso) {
+    throw new Error('Unable to serialise DateTime to ISO string.');
+  }
+  return iso;
+}
+
+function ensureISODate(date: DateTime): string {
+  const isoDate = date.toISODate();
+  if (!isoDate) {
+    throw new Error('Unable to serialise DateTime to ISO date string.');
+  }
+  return isoDate;
+}
+
 export function computeDayMetadata(weekStartLocal: DateTime): DayMetadata[] {
   return Array.from({ length: 7 }).map((_, dayIndex) => {
     const dayStart = weekStartLocal.plus({ days: dayIndex });
@@ -41,7 +57,7 @@ export function computeDayMetadata(weekStartLocal: DateTime): DayMetadata[] {
     const gasDayEnd = gasDayStart.plus({ days: 1 });
     return {
       dayIndex,
-      localDateISO: dayStart.toISODate(),
+      localDateISO: ensureISODate(dayStart),
       label: gasDayStart.toFormat('ccc dd MMM'),
       gasDayStart,
       gasDayEnd,
@@ -82,8 +98,8 @@ export function generateSteps({
     let stepIndex = 0;
     while (cursor < gasDayEnd) {
       const endLocal = cursor.plus(resolution);
-      const startUTC = cursor.toUTC().toISO();
-      const endUTC = endLocal.toUTC().toISO();
+      const startUTC = ensureISO(cursor.toUTC());
+      const endUTC = ensureISO(endLocal.toUTC());
       const key = `${startUTC}|${endUTC}`;
       const baseline = baselineMap.get(key);
       const baselineValue = baseline?.value ?? 0;
@@ -97,10 +113,10 @@ export function generateSteps({
       }
       daySteps.push({
         stepIndex,
-        startLocal: cursor.toISO(),
-        endLocal: endLocal.toISO(),
-        startUTC: startUTC!,
-        endUTC: endUTC!,
+        startLocal: ensureISO(cursor),
+        endLocal: ensureISO(endLocal),
+        startUTC,
+        endUTC,
         offsetMinutes: cursor.offset,
         source,
         value,

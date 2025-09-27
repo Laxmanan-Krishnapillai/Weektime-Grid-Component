@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DataGridPremium,
-  GridCellEditCommitParams,
   GridCellParams,
   GridColDef,
   GridColumnGroupingModel,
@@ -56,6 +55,14 @@ function useSafeTranslations(namespace: string) {
       return formatTemplate(fallback, values);
     }) as ReturnType<typeof useNextIntlTranslations>;
   }
+}
+
+function toISOOrThrow(date: DateTime): string {
+  const iso = date.toISO();
+  if (!iso) {
+    throw new Error('Unable to serialise DateTime to ISO string.');
+  }
+  return iso;
 }
 
 interface GridRow extends GridValidRowModel {
@@ -237,7 +244,7 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
   const [transientErrors, setTransientErrors] = useState<Map<string, ValidationError>>(new Map());
 
   const weekStartLocal = useMemo(() => resolveWeekStart(weekAnchor), [weekAnchor]);
-  const weekStartLocalISO = useMemo(() => weekStartLocal.toISO(), [weekStartLocal]);
+  const weekStartLocalISO = useMemo(() => toISOOrThrow(weekStartLocal), [weekStartLocal]);
   const now = useMemo(
     () => (nowISO ? DateTime.fromISO(nowISO).setZone(TIME_ZONE) : DateTime.now().setZone(TIME_ZONE)),
     [nowISO],
@@ -357,7 +364,7 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
           steps,
           direction,
           resolutionMinutes,
-          weekStartLocalISO ?? weekStartLocal.toISO(),
+          weekStartLocalISO,
         ),
       );
     }, DEBOUNCE_MS);
@@ -417,19 +424,25 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
     });
   }, [combinedErrorMap, dayLabels, dayTotals, stepColumnsMeta, stepsByDay]);
 
-  const handleCellEditCommit = useCallback(
-    (params: GridCellEditCommitParams) => {
-      const stepIndex = parseStepIndex(params.field);
-      if (stepIndex == null) {
-        return;
+  const handleProcessRowUpdate = useCallback(
+    (newRow: GridRow, oldRow: GridRow): GridRow => {
+      const dayIndex = Number(newRow.id);
+      if (!Number.isFinite(dayIndex)) {
+        return oldRow;
       }
-      const dayIndex = Number(params.id);
+
+      const changedMeta = stepColumnsMeta.find((meta) => newRow[meta.field] !== oldRow[meta.field]);
+      if (!changedMeta) {
+        return oldRow;
+      }
+
       const daySteps = stepsByDay[dayIndex] ?? [];
-      const targetStep = daySteps.find((step) => step.stepIndex === stepIndex);
+      const targetStep = daySteps.find((step) => step.stepIndex === changedMeta.stepIndex);
       if (!targetStep) {
-        return;
+        return oldRow;
       }
-      const result = parseInput(params.value, targetStep, maxValue);
+
+      const result = parseInput(newRow[changedMeta.field], targetStep, maxValue);
       if (!result.success || result.value === undefined) {
         setTransientErrors((prev) => {
           const next = new Map(prev);
@@ -438,7 +451,7 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
           }
           return next;
         });
-        return;
+        throw result.error ?? new Error('Invalid value');
       }
 
       setTransientErrors((prev) => {
@@ -458,8 +471,13 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
             : step,
         ),
       );
+
+      return {
+        ...newRow,
+        [changedMeta.field]: result.value,
+      };
     },
-    [maxValue, stepsByDay],
+    [maxValue, stepColumnsMeta, stepsByDay],
   );
 
   const columns = useMemo<GridColDef<GridRow>[]>(() => {
@@ -468,7 +486,6 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
         field: 'dayLabel',
         headerName: t('labels.day'),
         width: 150,
-        pinned: 'left',
         sortable: false,
         filterable: false,
         disableColumnMenu: true,
@@ -478,7 +495,6 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
         field: 'dayTotal',
         headerName: t('labels.totalDay'),
         width: 130,
-        pinned: 'left',
         sortable: false,
         filterable: false,
         disableColumnMenu: true,
@@ -607,13 +623,17 @@ export const NominationGrid: React.FC<NominationGridProps> = ({
           rows={rows}
           columns={columns}
           columnGroupingModel={columnGroupingModel}
+          pinnedColumns={{ left: ['dayLabel', 'dayTotal'] }}
           disableRowSelectionOnClick
           hideFooter
           autoHeight
           density="compact"
           getRowHeight={() => 40}
           isCellEditable={isCellEditable}
-          onCellEditCommit={handleCellEditCommit}
+          processRowUpdate={(newRow, oldRow) => handleProcessRowUpdate(newRow as GridRow, oldRow as GridRow)}
+          onProcessRowUpdateError={() => {
+            /* handled through transient errors */
+          }}
           sx={{
             '& .MuiDataGrid-cell': {
               outline: 'none !important',
